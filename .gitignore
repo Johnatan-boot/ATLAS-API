@@ -1,0 +1,19 @@
+node_modules/
+dist/
+data/
+*.db
+*.db-wal
+*.db-shm
+.env
+coverage/
+*.log
+
+# segredos e arquivos locais
+.env.*
+!.env.example
+consulta.cjs
+
+# segredos e arquivos locais
+.env.*
+!.env.example
+consulta.cjs
