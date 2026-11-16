@@ -1518,6 +1518,7 @@ body.col-resizing,body.col-resizing *{cursor:col-resize!important;user-select:no
                   <div class="field"><label for="f-pedido">Número do pedido <span class="req">*</span></label><input class="inp" id="f-pedido" name="pedido" required><span class="err">Informe o número do pedido.</span><span class="warn" id="dupWarn" hidden>Já existe uma cotação para este pedido.</span></div>
                   <div class="field"><label for="f-filial">Filial da venda <span class="req">*</span></label><input class="inp" id="f-filial" name="filial" list="dl-filial-cad" autocomplete="off" placeholder="Digite o nome ou código" required><span class="err" id="filErr">Escolha uma filial cadastrada e ativa.</span><span class="hint" id="filHint" hidden>Nenhuma filial cadastrada. <button type="button" data-go="filiais" style="border:0;background:none;padding:0;font:inherit;color:var(--gold-ink);font-weight:700;cursor:pointer;text-decoration:underline">Cadastrar filiais</button></span></div>
                   <div class="field"><label for="f-valorPedido">Valor do pedido</label><div class="prefix"><span>R$</span><input class="inp" id="f-valorPedido" name="valorPedido" readonly tabindex="-1" placeholder="0,00" aria-describedby="vpHint"></div><span class="hint" id="vpHint">Soma de valor × quantidade dos produtos.</span></div>
+                  <div class="field"><label for="f-nf">Número da NF</label><input class="inp" id="f-nf" name="numeroNF" inputmode="numeric" maxlength="9" autocomplete="off" placeholder="Opcional"><span class="err">Use somente números, até 9 dígitos.</span></div>
                 </div>
               </div>
 
@@ -2389,6 +2390,7 @@ function updateSummary() {
 }
 form.addEventListener("input", e => { const f = e.target.closest(".field"); if (f) { f.classList.remove("has-err"); e.target.classList.remove("invalid"); } updateSummary(); });
 form.addEventListener("change", updateSummary);
+$("#f-nf").addEventListener("input", e => { const v = e.target.value.replace(/\D/g, "").slice(0, 9); if (v !== e.target.value) e.target.value = v; });
 
 
 /* ---------- opções de frete (cotação transportadora) ---------- */
@@ -2480,6 +2482,7 @@ function setErr(input, bad) { const f = input.closest(".field"); f.classList.tog
 function validate() {
   let first = null; const mark = (el, bad) => { if (setErr(el, bad) && !first) first = el; };
   ["#f-cliente", "#f-pedido", "#f-cidade", "#f-uf", "#f-embarque"].forEach(s => mark($(s), !$(s).value.trim()));
+  mark($("#f-nf"), !/^\d{0,9}$/.test($("#f-nf").value.trim()));
   if (!$("#f-filial").value.trim()) { $("#filErr").textContent = "Informe a filial da venda."; mark($("#f-filial"), true); } else mark($("#f-filial"), !checkFilialField(true));
   const vp = parseMoney($("#f-valorPedido").value), vf = parseMoney($("#f-valorFrete").value);
   qoValidate(mark);
@@ -2511,7 +2514,7 @@ function loadForm(q) {
   resetForm(); editingId = q.id; form.classList.add("editing");
   $("#editLabel").textContent = `Editando o pedido ${q.pedido} do cliente ${q.cliente}`;
   const set = (s, v) => $(s).value = v ?? "";
-  set("#f-cliente", q.cliente); set("#f-pedido", q.pedido); setFilialValue(q.filial);
+  set("#f-cliente", q.cliente); set("#f-pedido", q.pedido); set("#f-nf", q.numeroNF || ""); setFilialValue(q.filial);
   set("#f-cep", q.cep || ""); set("#f-cidade", q.cidade); set("#f-uf", q.uf);
   set("#f-embarque", q.dataEmbarque); set("#f-rastreio", q.rastreio);
   const ops = q.opcoes && q.opcoes.length ? q.opcoes : [{ numero: q.numeroCotacao || "", transportadora: q.transportadora, valorFrete: q.valorFrete, prazoDias: q.prazoDias }];
@@ -2534,6 +2537,7 @@ form.addEventListener("submit", async e => {
   const data = {
     cliente: $("#f-cliente").value.trim(),
     pedido: $("#f-pedido").value.trim(),
+    numeroNF: $("#f-nf").value.trim(),
     filial: resolveFilial($("#f-filial").value).nome,
     produtos: readProducts(),
     valorPedido: Math.round(readProducts().reduce((a, p) => a + p.subtotal, 0) * 100) / 100,
@@ -2649,6 +2653,7 @@ function renderTrack() {
             <span>Filial</span><b>${esc(q.filial) || "—"}</b>
             <span>CEP de entrega</span><b>${esc(q.cep) || "—"}</b>
             <span>Peso total</span><b>${q.pesoTotal ? fmtKg(q.pesoTotal) : "—"}</b>
+            <span>Número da NF</span><b>${esc(q.numeroNF) || "—"}</b>
             <span>Nº da cotação</span><b>${esc(q.numeroCotacao) || "—"}</b>
             ${q.opcoes && q.opcoes.length > 1 ? `<span>Opções cotadas</span><b title="${esc(q.opcoes.map(o => `${o.transportadora}: ${brl.format(o.valorFrete)}, ${o.prazoDias} d.u.${o.numero ? " (nº " + o.numero + ")" : ""}`).join(" | "))}">${q.opcoes.length}${(() => { const mx = Math.max(...q.opcoes.map(o => o.valorFrete)); const d = mx - (q.valorFrete || 0); return d > 0.004 ? `, economia de ${brl.format(d)}` : ""; })()}</b>` : ""}</div></div>
           <div><h4>Entrega</h4><div class="kv">

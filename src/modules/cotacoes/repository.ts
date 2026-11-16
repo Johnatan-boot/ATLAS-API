@@ -12,7 +12,7 @@ export class PedidosRepository {
 
   toDoc(r: PedidoRow): CotacaoDoc {
     const d = JSON.parse(r.dados) as Omit<CotacaoDoc, "id" | "criadoEm" | "criadoPor" | "alteradoEm" | "alteradoPor" | "historico" | "atualizadoEm">;
-    return { ...d, id: r.id, criadoEm: r.criado_em, criadoPor: r.criado_por, alteradoEm: r.alterado_em, alteradoPor: r.alterado_por, atualizadoEm: r.alterado_em, historico: parseHist(r.historico) };
+    return { ...d, numeroNF: d.numeroNF ?? "", id: r.id, criadoEm: r.criado_em, criadoPor: r.criado_por, alteradoEm: r.alterado_em, alteradoPor: r.alterado_por, atualizadoEm: r.alterado_em, historico: parseHist(r.historico) };
   }
   async find(id: string, db: Database = this.db) { const r = await db.get<PedidoRow>(`SELECT * FROM ${this.table} WHERE id = ?`, [id]); return r ? this.toDoc(r) : null; }
 

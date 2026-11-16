@@ -82,7 +82,7 @@ export class PedidosService {
     if (removed.length && user.grupo !== "admin") throw forbidden("Seu grupo não tem permissão para excluir observações.");
 
     return {
-      cliente: input.cliente, pedido: input.pedido, filial, produtos, valorPedido, pesoTotal,
+      cliente: input.cliente, pedido: input.pedido, numeroNF: input.numeroNF ?? "", filial, produtos, valorPedido, pesoTotal,
       transportadora, valorFrete: round2(valorFrete), prazoDias, numeroCotacao, opcoes, opcaoSel, opcaoMelhor,
       cep: input.cep ?? "", cidade: input.cidade, uf: input.uf, dataEmbarque: input.dataEmbarque, dataPrevista: toISO(prevista),
       rastreio: input.rastreio ?? "", rastreioImg: input.rastreioImg ?? "", rastreioImgNome: input.rastreioImgNome ?? "", obs, entregueEm,
@@ -127,7 +127,7 @@ export class PedidosService {
       const obs: Record<string, Observacao | null> = { ...prev.obs };
       if (patch.obs) for (const [k, v] of Object.entries(patch.obs)) { if (v === null) delete obs[k]; else obs[k] = obs[k] ?? { texto: v.texto, em: "", autorId: null }; }
       const merged = CotacaoBody.parse({
-        cliente: prev.cliente, pedido: prev.pedido, filial: prev.filial, produtos: prev.produtos, transportadora: prev.transportadora, valorFrete: prev.valorFrete,
+        cliente: prev.cliente, pedido: prev.pedido, numeroNF: prev.numeroNF ?? "", filial: prev.filial, produtos: prev.produtos, transportadora: prev.transportadora, valorFrete: prev.valorFrete,
         prazoDias: prev.prazoDias, numeroCotacao: prev.numeroCotacao, opcoes: prev.opcoes, opcaoSel: prev.opcoes?.length ? prev.opcaoSel : undefined, cep: prev.cep,
         cidade: prev.cidade, uf: prev.uf, dataEmbarque: prev.dataEmbarque, rastreio: prev.rastreio, rastreioImg: prev.rastreioImg, rastreioImgNome: prev.rastreioImgNome,
         entregueEm: prev.entregueEm, ...patch, obs,

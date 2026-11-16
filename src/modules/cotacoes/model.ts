@@ -6,7 +6,7 @@ export interface OpcaoFrete { numero: string; transportadora: string; valorFrete
 export interface Observacao { texto: string; em: string; autorId: string | null }
 export interface CotacaoDoc {
   id: string;
-  cliente: string; pedido: string; filial: string;
+  cliente: string; pedido: string; numeroNF: string; filial: string;
   produtos: ProdutoItem[]; valorPedido: number; pesoTotal: number;
   transportadora: string; valorFrete: number; prazoDias: number; numeroCotacao: string;
   opcoes: OpcaoFrete[]; opcaoSel: number; opcaoMelhor: number;

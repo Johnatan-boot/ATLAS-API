@@ -27,6 +27,7 @@ export const ObsSchema = z.object({ texto: z.string().trim().min(1).max(1000), e
 const Fields = {
   cliente: z.string().trim().min(1).max(60),
   pedido: z.string().trim().min(1).max(60),
+  numeroNF: z.string().trim().regex(/^\d{0,9}$/, "Número da NF inválido: use somente números, até 9 dígitos."),
   filial: z.string().trim().min(1).max(60),
   produtos: z.array(ProdutoItemSchema).min(1, "Inclua pelo menos um produto.").max(200),
   transportadora: z.string().trim().min(1).max(80),
@@ -46,7 +47,7 @@ const Fields = {
   entregueEm: IsoDate.nullable(),
   acao: z.string().trim().max(80),
 };
-export const CotacaoBody = z.object(Fields).partial({ numeroCotacao: true, opcoes: true, opcaoSel: true, cep: true, rastreio: true, rastreioImg: true, rastreioImgNome: true, obs: true, entregueEm: true, acao: true });
+export const CotacaoBody = z.object(Fields).partial({ numeroNF: true, numeroCotacao: true, opcoes: true, opcaoSel: true, cep: true, rastreio: true, rastreioImg: true, rastreioImgNome: true, obs: true, entregueEm: true, acao: true });
 export const CotacaoPatch = z.object(Fields).partial().refine(o => Object.keys(o).length > 0, "Informe ao menos um campo.");
 export type CotacaoInput = z.infer<typeof CotacaoBody>;
 export type CotacaoPatchInput = z.infer<typeof CotacaoPatch>;

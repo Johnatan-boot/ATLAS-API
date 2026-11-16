@@ -97,3 +97,45 @@ test("transação: falha no meio não grava nada", async () => {
   }));
   assert.equal((await t.db.get<{ n: number }>("SELECT COUNT(*) AS n FROM cotacoes"))!.n, antes);
 });
+
+/* ---------- Número da NF (numeroNF) ---------- */
+test("numeroNF: cadastro com NF preserva zeros à esquerda; cadastro sem NF retorna vazio", async () => {
+  const c = await post("/api/v1/cotacoes", tk.oper, cotacaoPayload({ pedido: "PV-NF1", numeroNF: "000123" }));
+  assert.equal(c.statusCode, 201, c.body); assert.equal(c.json().data.numeroNF, "000123");
+  const g = await t.app.inject({ url: `/api/v1/cotacoes/${c.json().data.id}`, headers: auth(tk.visu) });
+  assert.equal(g.json().data.numeroNF, "000123", "consulta devolve o valor salvo");
+  const s = await post("/api/v1/cotacoes", tk.oper, cotacaoPayload({ pedido: "PV-NF2" }));
+  assert.equal(s.statusCode, 201); assert.equal(s.json().data.numeroNF, "");
+});
+test("numeroNF: atualização de outros campos preserva a NF; a NF pode ser preenchida e alterada depois", async () => {
+  const c = (await post("/api/v1/cotacoes", tk.oper, cotacaoPayload({ pedido: "PV-NF3", numeroNF: "000456" }))).json().data;
+  const e = await t.app.inject({ method: "PATCH", url: `/api/v1/cotacoes/${c.id}`, headers: auth(tk.oper), payload: { entregueEm: isoOffset(0) } });
+  assert.equal(e.json().data.numeroNF, "000456", "PATCH em outro campo não apaga a NF");
+  const n = await t.app.inject({ method: "PATCH", url: `/api/v1/cotacoes/${c.id}`, headers: auth(tk.oper), payload: { numeroNF: "009999999" } });
+  assert.equal(n.statusCode, 200); assert.equal(n.json().data.numeroNF, "009999999");
+  const s = (await post("/api/v1/cotacoes", tk.oper, cotacaoPayload({ pedido: "PV-NF4" }))).json().data;
+  const p = await t.app.inject({ method: "PUT", url: `/api/v1/cotacoes/${s.id}`, headers: auth(tk.oper), payload: cotacaoPayload({ pedido: "PV-NF4", numeroNF: "0012" }) });
+  assert.equal(p.json().data.numeroNF, "0012", "preenchimento posterior pela edição completa");
+});
+test("numeroNF: valores inválidos são recusados", async () => {
+  for (const v of ["12A", "1234567890", "12-3", " 1 2 "]) {
+    const r = await post("/api/v1/cotacoes", tk.oper, cotacaoPayload({ pedido: "PV-NF-INV", numeroNF: v }));
+    assert.equal(r.statusCode, 400, `valor ${JSON.stringify(v)}`);
+  }
+});
+test("numeroNF: registro antigo sem o campo é lido como vazio e continua editável", async () => {
+  const c = (await post("/api/v1/cotacoes", tk.oper, cotacaoPayload({ pedido: "PV-NF-ANTIGO", numeroNF: "1" }))).json().data;
+  const row = await t.db.get<{ dados: string }>("SELECT dados FROM cotacoes WHERE id = ?", [c.id]);
+  const dados = JSON.parse(row!.dados); delete dados.numeroNF;
+  await t.db.run("UPDATE cotacoes SET dados = ? WHERE id = ?", [JSON.stringify(dados), c.id]);
+  const g = await t.app.inject({ url: `/api/v1/cotacoes/${c.id}`, headers: auth(tk.oper) });
+  assert.equal(g.statusCode, 200); assert.equal(g.json().data.numeroNF, "");
+  const e = await t.app.inject({ method: "PATCH", url: `/api/v1/cotacoes/${c.id}`, headers: auth(tk.oper), payload: { cliente: "99999" } });
+  assert.equal(e.statusCode, 200); assert.equal(e.json().data.numeroNF, "");
+});
+test("numeroNF: Coletas segue a mesma regra", async () => {
+  const c = await post("/api/v1/coletas", tk.oper, cotacaoPayload({ pedido: "CL-NF1", numeroNF: "000777" }));
+  assert.equal(c.statusCode, 201); assert.equal(c.json().data.numeroNF, "000777");
+  const e = await t.app.inject({ method: "PATCH", url: `/api/v1/coletas/${c.json().data.id}`, headers: auth(tk.oper), payload: { rastreio: "https://rastreio.exemplo.com/2" } });
+  assert.equal(e.json().data.numeroNF, "000777");
+});
