@@ -2624,8 +2624,7 @@ function renderTrack() {
       const trk = q.rastreio
         ? `<a class="act on" href="${esc(q.rastreio)}" target="_blank" rel="noopener noreferrer" title="Abrir rastreio" aria-label="Abrir rastreio do pedido ${esc(q.pedido)}"><svg class="i"><use href="#i-link"/></svg></a>`
         : `<button class="act" data-a="track" title="Incluir rastreio" aria-label="Incluir rastreio do pedido ${esc(q.pedido)}"><svg class="i"><use href="#i-link"/></svg></button>`;
-      const nObs = obsOf(q).length;
-      const obsBtn = `<button class="act${nObs ? " on" : ""}" data-a="obs" title="Observações" aria-label="Observações do pedido ${esc(q.pedido)}${nObs ? `, ${nObs}` : ""}"><svg class="i"><use href="#i-note"/></svg>${nObs ? `<span class="cnt">${nObs > 99 ? "99+" : nObs}</span>` : ""}</button>`;
+      const uplBtn = `<button class="act${q.rastreioImg ? " on" : ""}" data-a="track" title="${q.rastreioImg ? "Alterar imagem do rastreio" : "Incluir imagem do rastreio"}" aria-label="${q.rastreioImg ? "Alterar" : "Incluir"} imagem do rastreio do pedido ${esc(q.pedido)}"><svg class="i"><use href="#i-upload"/></svg></button>`;
       const imgBtn = q.rastreioImg ? `<button class="act on" data-a="img" title="Ver imagem do rastreio" aria-label="Ver imagem do rastreio do pedido ${esc(q.pedido)}"><svg class="i"><use href="#i-image"/></svg></button>` : "";
       const dlv = s.delivered
         ? `<button class="act" data-a="undo" title="Reabrir entrega" aria-label="Reabrir entrega"><svg class="i"><use href="#i-undo"/></svg></button>`
@@ -2639,7 +2638,7 @@ function renderTrack() {
           <span class="c-prev">${p ? p.toLocaleDateString("pt-BR") : "—"}</span>
           <span class="remain c-rem ${s.cls}">${esc(s.text)}</span>
           <span class="c-st"><span class="pill ${s.key}">${s.label}</span></span>
-          <span class="acts c-act">${dlv}${trk}${imgBtn}${obsBtn}<button class="act" data-a="edit" title="Editar" aria-label="Editar cotação"><svg class="i"><use href="#i-edit"/></svg></button><button class="act del" data-a="del" title="Excluir" aria-label="Excluir cotação"><svg class="i"><use href="#i-trash"/></svg></button></span>
+          <span class="acts c-act">${dlv}${trk}${imgBtn}${uplBtn}<button class="act" data-a="edit" title="Editar" aria-label="Editar cotação"><svg class="i"><use href="#i-edit"/></svg></button><button class="act del" data-a="del" title="Excluir" aria-label="Excluir cotação"><svg class="i"><use href="#i-trash"/></svg></button></span>
         </div>
         <div class="details"><div class="det-grid">
           <div><h4>Produtos</h4><ul class="prods">${prodTxt}</ul></div>

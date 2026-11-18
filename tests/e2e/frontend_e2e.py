@@ -50,7 +50,7 @@ async def main():
         await pg.click("#list [data-a=deliver] >> nth=0"); await pg.wait_for_timeout(300); await pg.click("#mFoot .primary"); await pg.wait_for_timeout(1500)
         _, d = api("GET", "/cotacoes/" + c[0]["id"], tok)
         check("marcar como entregue grava no servidor", d["data"]["entregueEm"] and d["data"]["historico"][-1]["acao"] == "Marcada como entregue")
-        await pg.click("#list [data-a=obs] >> nth=0"); await pg.wait_for_timeout(400)
+        await pg.click("#list .row >> nth=0"); await pg.wait_for_timeout(300); await pg.click("#list .details [data-a=obs] >> nth=0"); await pg.wait_for_timeout(400)
         await pg.fill("#obsTxt", "Cliente pediu entrega pela manhã"); await pg.click("#obsAdd"); await pg.wait_for_timeout(1500)
         _, d = api("GET", "/cotacoes/" + c[0]["id"], tok)
         check("observação gravada com data do servidor", len(d["data"]["obs"]) == 1)
