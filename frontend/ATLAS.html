@@ -562,6 +562,19 @@ tr.inativa td{color:var(--faint)}
 .det-obs{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line-2)}
 .det-obs h4{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .det-obs .obs-list{margin-top:6px;max-height:none}
+.obs-row{flex-wrap:wrap}
+.obs-actions{display:flex;align-items:center;gap:8px;flex:none;margin-left:auto}
+.obs-pic{display:flex;align-items:center;gap:12px;margin-top:10px;padding:8px 10px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+.obs-pic[hidden]{display:none}
+.obs-pic img{width:56px;height:56px;border-radius:10px;object-fit:cover;flex:none;border:1px solid var(--line)}
+.obs-pic .nm{flex:1;min-width:0;font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.obs-new.over{border-color:var(--gold);box-shadow:0 0 0 3px var(--gold-soft)}
+.obs-imgbtn{display:block;margin-top:8px;padding:0;border:0;background:none;cursor:zoom-in}
+.obs-img{display:block;max-width:min(260px,100%);max-height:180px;border-radius:12px;border:1px solid var(--line);object-fit:cover}
+.obs-clip{display:inline-flex;align-items:center;gap:6px;margin-top:6px;font-size:12px;font-weight:600;color:var(--gold-ink)}
+.obs-clip svg.i{width:14px;height:14px}
+.lb{position:fixed;inset:0;z-index:300;display:grid;place-items:center;padding:24px;background:rgba(11,10,9,.86);cursor:zoom-out}
+.lb img{max-width:94vw;max-height:90vh;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
 
 /* ---------- pastas do menu ---------- */
 .nav{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain}
@@ -2624,7 +2637,8 @@ function renderTrack() {
       const trk = q.rastreio
         ? `<a class="act on" href="${esc(q.rastreio)}" target="_blank" rel="noopener noreferrer" title="Abrir rastreio" aria-label="Abrir rastreio do pedido ${esc(q.pedido)}"><svg class="i"><use href="#i-link"/></svg></a>`
         : `<button class="act" data-a="track" title="Incluir rastreio" aria-label="Incluir rastreio do pedido ${esc(q.pedido)}"><svg class="i"><use href="#i-link"/></svg></button>`;
-      const uplBtn = `<button class="act${q.rastreioImg ? " on" : ""}" data-a="track" title="${q.rastreioImg ? "Alterar imagem do rastreio" : "Incluir imagem do rastreio"}" aria-label="${q.rastreioImg ? "Alterar" : "Incluir"} imagem do rastreio do pedido ${esc(q.pedido)}"><svg class="i"><use href="#i-upload"/></svg></button>`;
+      const nObs = obsOf(q).length;
+      const obsBtn = `<button class="act${nObs ? " on" : ""}" data-a="obs" title="Observações" aria-label="Observações do pedido ${esc(q.pedido)}${nObs ? `, ${nObs}` : ""}"><svg class="i"><use href="#i-note"/></svg>${nObs ? `<span class="cnt">${nObs > 99 ? "99+" : nObs}</span>` : ""}</button>`;
       const imgBtn = q.rastreioImg ? `<button class="act on" data-a="img" title="Ver imagem do rastreio" aria-label="Ver imagem do rastreio do pedido ${esc(q.pedido)}"><svg class="i"><use href="#i-image"/></svg></button>` : "";
       const dlv = s.delivered
         ? `<button class="act" data-a="undo" title="Reabrir entrega" aria-label="Reabrir entrega"><svg class="i"><use href="#i-undo"/></svg></button>`
@@ -2638,7 +2652,7 @@ function renderTrack() {
           <span class="c-prev">${p ? p.toLocaleDateString("pt-BR") : "—"}</span>
           <span class="remain c-rem ${s.cls}">${esc(s.text)}</span>
           <span class="c-st"><span class="pill ${s.key}">${s.label}</span></span>
-          <span class="acts c-act">${dlv}${trk}${imgBtn}${uplBtn}<button class="act" data-a="edit" title="Editar" aria-label="Editar cotação"><svg class="i"><use href="#i-edit"/></svg></button><button class="act del" data-a="del" title="Excluir" aria-label="Excluir cotação"><svg class="i"><use href="#i-trash"/></svg></button></span>
+          <span class="acts c-act">${dlv}${trk}${imgBtn}${obsBtn}<button class="act" data-a="edit" title="Editar" aria-label="Editar cotação"><svg class="i"><use href="#i-edit"/></svg></button><button class="act del" data-a="del" title="Excluir" aria-label="Excluir cotação"><svg class="i"><use href="#i-trash"/></svg></button></span>
         </div>
         <div class="details"><div class="det-grid">
           <div><h4>Produtos</h4><ul class="prods">${prodTxt}</ul></div>
@@ -2658,7 +2672,7 @@ function renderTrack() {
             <span>Previsão</span><b>${p ? p.toLocaleDateString("pt-BR") : "—"}</b>
             <span>Entregue ao cliente</span><b>${q.entregueEm ? fmtDate(q.entregueEm) : "—"}</b>
             <span>Rastreio</span><b>${q.rastreio ? `<a href="${esc(q.rastreio)}" target="_blank" rel="noopener noreferrer" style="color:var(--gold-ink)">Abrir</a> <button class="btn ghost sm" data-a="track" style="height:auto;padding:0;color:var(--muted)">alterar</button>` : `<button class="btn ghost sm" data-a="track" style="height:auto;padding:0;color:var(--gold-ink)">Incluir</button>`}</b>
-            <span>Imagem</span><b>${q.rastreioImg ? `<button class="thumb" data-a="img" title="Ampliar imagem"><img src="${esc(imgSrc(q))}" alt="Imagem do rastreio" loading="lazy"></button>` : `<button class="btn ghost sm" data-a="track" style="height:auto;padding:0;color:var(--gold-ink)">Incluir</button>`}</b></div></div>
+            ${q.rastreioImg ? `<span>Imagem</span><b><button class="thumb" data-a="img" title="Ampliar imagem"><img src="${esc(imgSrc(q))}" alt="Imagem do rastreio" loading="lazy"></button></b>` : ""}</div></div>
         </div>${obsBlock(q)}${auditHTML(q)}</div>
       </div>`;
     }).join("");
@@ -2688,8 +2702,8 @@ const obsOf = q => Object.entries(q.obs || {}).filter(([, o]) => o && o.texto).m
 const fmtDT = iso => { const d = new Date(iso); return isNaN(d) ? "—" : `${d.toLocaleDateString("pt-BR")} às ${d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`; };
 let userCap; async function getUser() { if (userCap !== undefined) return userCap; try { userCap = mode === "shared" && window.claude && window.claude.use ? await window.claude.use("user") : null; } catch { userCap = null; } return userCap; }
 let myId = null;
-function obsItemsHTML(list, withDel) {
-  return list.map(o => `<li class="obs-item" data-o="${esc(o.id)}"><div class="obs-meta"><b>${fmtDT(o.em)}</b>${o.autorId ? (users.has(o.autorId) ? `<span class="who">por ${esc(users.get(o.autorId).usuario)}</span>` : `<span class="who" data-uid="${esc(o.autorId)}"></span>`) : ""}${withDel ? `<button class="obs-del" data-od="${esc(o.id)}" title="Excluir observação" aria-label="Excluir observação"><svg class="i"><use href="#i-trash"/></svg></button>` : ""}</div><p class="obs-txt">${esc(o.texto)}</p></li>`).join("");
+function obsItemsHTML(list, withDel, withImg) {
+  return list.map(o => `<li class="obs-item" data-o="${esc(o.id)}"><div class="obs-meta"><b>${fmtDT(o.em)}</b>${o.autorId ? (users.has(o.autorId) ? `<span class="who">por ${esc(users.get(o.autorId).usuario)}</span>` : `<span class="who" data-uid="${esc(o.autorId)}"></span>`) : ""}${withDel ? `<button class="obs-del" data-od="${esc(o.id)}" title="Excluir observação" aria-label="Excluir observação"><svg class="i"><use href="#i-trash"/></svg></button>` : ""}</div><p class="obs-txt">${esc(o.texto)}</p>${o.imagem ? (withImg ? `<button type="button" class="obs-imgbtn" data-oi="${esc(o.id)}" title="Ampliar imagem" aria-label="Ampliar imagem anexada"><img class="obs-img" src="${esc(o.imagem)}" alt="${esc(o.imagemNome || "Imagem anexada à observação")}" loading="lazy"></button>` : `<span class="obs-clip"><svg class="i"><use href="#i-image"/></svg>Imagem anexada</span>`) : ""}</li>`).join("");
 }
 async function fillAuthors(root) {
   if (!root) return;
@@ -2715,12 +2729,20 @@ function obsBlock(q) {
   const list = obsOf(q);
   return `<div class="det-obs"><h4><span>Observações${list.length ? ` (${list.length})` : ""}</span><button class="btn ghost sm" data-a="obs" style="height:auto;padding:0;color:var(--gold-ink)">${list.length ? "Ver todas e incluir" : "Incluir observação"}</button></h4>${list.length ? `<ul class="obs-list">${obsItemsHTML(list.slice(0, 2), false)}</ul>` : `<p class="obs-empty" style="margin-top:6px">Nenhuma observação registrada.</p>`}</div>`;
 }
+function lightbox(src, alt) {
+  const el = document.createElement("div"); el.className = "lb"; el.setAttribute("role", "dialog"); el.setAttribute("aria-label", alt || "Imagem");
+  el.innerHTML = `<img src="${esc(src)}" alt="${esc(alt || "")}">`;
+  const close = () => { el.remove(); document.removeEventListener("keydown", onKey, true); };
+  const onKey = e => { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); close(); } };
+  el.onclick = close; document.addEventListener("keydown", onKey, true); document.body.appendChild(el);
+}
+function openObsImg(q, oid) { const o = q && q.obs && q.obs[oid]; if (o && o.imagem) lightbox(o.imagem, o.imagemNome || "Imagem anexada à observação"); }
 let obsOpenId = null, obsClock = null;
 function renderObsModal() {
   if (!obsOpenId || !$("#overlay").classList.contains("show") || !$("#obsList")) return;
   const q = items.find(x => x.id === obsOpenId); if (!q) return;
   const list = obsOf(q);
-  $("#obsList").innerHTML = list.length ? obsItemsHTML(list, true) : "";
+  $("#obsList").innerHTML = list.length ? obsItemsHTML(list, true, true) : "";
   $("#obsEmpty").hidden = !!list.length;
   $("#obsCount").textContent = list.length ? `${list.length} ${plural(list.length, "observação", "observações")}` : "";
   fillAuthors($("#obsList"));
@@ -2733,7 +2755,9 @@ async function openObs(q) {
       <div class="obs-new">
         <div class="obs-when"><svg class="i"><use href="#i-clock"/></svg><span>Data e hora: <span id="obsNow"></span></span></div>
         <textarea class="obs-ta" id="obsTxt" maxlength="1000" placeholder="Escreva a observação…" aria-label="Nova observação"></textarea>
-        <div class="obs-row"><span id="obsLen">0/1000, Ctrl+Enter para incluir</span><button type="button" class="btn primary sm" id="obsAdd"><svg class="i"><use href="#i-plus"/></svg>Incluir observação</button></div>
+        <div class="obs-row"><span id="obsLen">0/1000, Ctrl+Enter para incluir</span><div class="obs-actions"><button type="button" class="btn sm" id="obsUp" title="Anexar imagem (PNG, JPG ou WEBP)" aria-label="Anexar imagem à observação"><svg class="i"><use href="#i-upload"/></svg>Anexar imagem</button><button type="button" class="btn primary sm" id="obsAdd"><svg class="i"><use href="#i-plus"/></svg>Incluir observação</button></div></div>
+        <input type="file" id="obsFile" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+        <div class="obs-pic" id="obsPic" hidden></div>
         <span class="err" id="obsErr"></span>
       </div>
       <div class="obs-meta" style="margin-top:18px"><b id="obsCount"></b></div>
@@ -2745,19 +2769,53 @@ async function openObs(q) {
   const ta = $("#obsTxt"); setTimeout(() => ta.focus(), 40);
   ta.oninput = () => { $("#obsLen").textContent = `${ta.value.length}/1000, Ctrl+Enter para incluir`; ta.classList.remove("invalid"); $("#obsErr").style.display = "none"; };
   ta.onkeydown = e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); $("#obsAdd").click(); } };
+  let pic = null, picUrl = null; // imagem escolhida, ainda não enviada
+  const obsErr = m => { const e = $("#obsErr"); e.textContent = m; e.style.display = m ? "block" : "none"; };
+  const drawPic = () => {
+    const b = $("#obsPic"); if (!b) return;
+    if (!pic) { b.hidden = true; b.innerHTML = ""; return; }
+    b.hidden = false; b.innerHTML = `<img src="${esc(picUrl)}" alt=""><span class="nm" title="${esc(pic.name)}">${esc(pic.name)}</span><button type="button" class="btn ghost sm" id="obsPicRm">Remover</button>`;
+  };
+  const clearPic = () => { if (picUrl) URL.revokeObjectURL(picUrl); pic = null; picUrl = null; drawPic(); };
+  const takePic = f => {
+    obsErr("");
+    if (!f) return;
+    if (!/^image\/(png|jpe?g|webp|gif)$/.test(f.type)) return obsErr("Formato não suportado. Use PNG, JPG ou WEBP.");
+    if (f.size > 20 * 1024 * 1024) return obsErr("A imagem passa de 20 MB.");
+    if (picUrl) URL.revokeObjectURL(picUrl);
+    pic = f; picUrl = URL.createObjectURL(f); drawPic();
+  };
+  $("#obsUp").onclick = () => $("#obsFile").click();
+  $("#obsFile").onchange = e => { takePic(e.target.files[0]); e.target.value = ""; };
+  $("#obsPic").onclick = e => { if (e.target.closest("#obsPicRm")) clearPic(); };
+  ta.onpaste = e => { const it = [...(e.clipboardData?.items || [])].find(x => x.type.startsWith("image/")); if (it) { e.preventDefault(); const f = it.getAsFile(); takePic(new File([f], f.name && f.name !== "image.png" ? f.name : "print.png", { type: f.type })); } };
+  const box = $(".obs-new"), hasFiles = e => [...(e.dataTransfer?.types || [])].includes("Files");
+  box.ondragover = e => { if (hasFiles(e)) { e.preventDefault(); box.classList.add("over"); } };
+  box.ondragleave = () => box.classList.remove("over");
+  box.ondrop = e => { if (hasFiles(e)) { e.preventDefault(); box.classList.remove("over"); takePic(e.dataTransfer.files[0]); } };
   $("#obsAdd").onclick = async () => {
     const txt = ta.value.trim();
     if (!txt) { ta.classList.add("invalid"); $("#obsErr").textContent = "Escreva a observação antes de incluir."; $("#obsErr").style.display = "block"; ta.focus(); return; }
-    const btn = $("#obsAdd"); btn.disabled = true;
+    const btn = $("#obsAdd"); btn.disabled = true; $("#obsUp").disabled = true;
     const oid = "o" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     const rec = { texto: txt, em: new Date().toISOString(), autorId: myId || null };
     try {
+      if (pic) {
+        let url = await blobToDataURL(await compressImage(pic, 1600, 0.8));
+        if (url.length > 1300000) url = await blobToDataURL(await compressImage(pic, 1280, 0.62));
+        if (url.length > 1300000) throw Object.assign(new Error("big"), { code: "too_large" });
+        rec.imagem = url; rec.imagemNome = pic.name.slice(0, 200);
+      }
       await addObsRec(obsOpenId, oid, rec);
-      ta.value = ""; ta.oninput(); toast("Observação incluída."); renderObsModal();
-    } catch (e) { $("#obsErr").textContent = writeErr(e); $("#obsErr").style.display = "block"; }
-    btn.disabled = false; ta.focus();
+      ta.value = ""; clearPic(); ta.oninput(); toast("Observação incluída."); renderObsModal();
+    } catch (e) {
+      const m = e && e.message;
+      obsErr(m === "decode" ? "Não foi possível ler esta imagem. Use PNG, JPG ou WEBP." : m === "encode" ? "Não foi possível processar a imagem." : (e && e.code === "too_large") ? "Imagem grande demais. Tente uma imagem menor." : writeErr(e));
+    }
+    btn.disabled = false; $("#obsUp").disabled = false; ta.focus();
   };
   $("#obsList").onclick = e => {
+    const im = e.target.closest("[data-oi]"); if (im) { openObsImg(items.find(x => x.id === obsOpenId), im.dataset.oi); return; }
     const d = e.target.closest("[data-od]"); if (!d) return;
     const li = d.closest(".obs-item");
     if (li.dataset.confirm) { delObsRec(obsOpenId, d.dataset.od).then(() => { toast("Observação excluída."); renderObsModal(); }).catch(err => toast(writeErr(err), true)); return; }
@@ -2812,74 +2870,24 @@ function showImg(q) {
     actions: [{ label: "Alterar rastreio", cls: "ghost", run: () => { setTimeout(() => askTrack(q), 0); } }, { label: "Fechar", cls: "primary" }] });
 }
 async function askTrack(q) {
-  const cap = await getAssets();
-  const canImg = mode !== "shared" || !!cap;
-  let pending = null, removeImg = false, previewUrl = null;
-  const has = () => pending || (q.rastreioImg && !removeImg);
-  const dropHTML = () => {
-    const src = pending ? previewUrl : (!removeImg && q.rastreioImg ? imgSrc(q) : "");
-    const name = pending ? pending.name : (q.rastreioImgNome || "Imagem salva");
-    return src
-      ? `<span class="th"><img src="${esc(src)}" alt=""></span><span class="tx"><b>${esc(name)}</b>Clique para trocar a imagem</span><button type="button" class="btn ghost sm rm" id="m-img-rm">Remover</button>`
-      : `<span class="th"><svg class="i"><use href="#i-image"/></svg></span><span class="tx"><b>Incluir imagem</b>Clique, arraste ou cole (Ctrl+V) um print do rastreio ou comprovante. PNG, JPG ou WEBP.</span>`;
-  };
-  modal({ title: q.rastreio || q.rastreioImg ? "Alterar rastreio" : "Incluir rastreio", wide: true,
+  let removeImg = false; // imagem antiga (anexada antes de existir o anexo nas observações): só dá para remover
+  modal({ title: q.rastreio ? "Alterar rastreio" : "Incluir rastreio", wide: true,
     body: `<p style="margin:0">Pedido ${esc(q.pedido)}, ${esc(q.transportadora)}</p>
       <div class="field"><label for="m-url">Link de rastreio</label><input class="inp" id="m-url" type="url" placeholder="https://" value="${esc(q.rastreio || "")}"><span class="err" id="m-url-err">Informe um link válido, por exemplo https://rastreio.transportadora.com.br/123</span></div>
-      <div class="field"><label>Imagem <span class="muted" style="font-weight:500">(opcional)</span></label>
-        ${canImg ? `<div class="drop" id="m-drop" role="button" tabindex="0" aria-label="Escolher imagem do rastreio">${dropHTML()}</div><input type="file" id="m-img" accept="image/png,image/jpeg,image/webp,image/gif" hidden>` : `<span class="hint">Você não tem permissão para enviar imagens nesta página. Peça acesso de Colaborador.</span>`}
-        <span class="err" id="m-img-err"></span></div>`,
-    actions: [{ label: "Cancelar", cls: "ghost", run: () => { if (previewUrl) URL.revokeObjectURL(previewUrl); } },
+      ${q.rastreioImg ? `<div class="field"><label>Imagem anexada antes</label><div class="drop" style="cursor:default"><span class="th"><img src="${esc(imgSrc(q))}" alt=""></span><span class="tx"><b>${esc(q.rastreioImgNome || "Imagem salva")}</b>Novas imagens são anexadas nas Observações.</span><button type="button" class="btn ghost sm rm" id="m-old-rm">Remover</button></div></div>` : `<p class="muted" style="margin:0;font-size:12.5px">Para anexar imagens (prints e comprovantes), use as <b>Observações</b> do pedido.</p>`}`,
+    actions: [{ label: "Cancelar", cls: "ghost" },
       { label: "Salvar rastreio", cls: "primary", run: async () => {
         const inp = $("#m-url"), raw = inp.value.trim(), url = raw ? normalizeUrl(raw) : "";
         $("#m-url-err").textContent = "Informe um link válido, por exemplo https://rastreio.transportadora.com.br/123";
         if (url === null) { setErr(inp, true); inp.focus(); return false; }
-        if (!url && !has()) { $("#m-url-err").textContent = "Informe um link de rastreio ou inclua uma imagem."; setErr(inp, true); inp.focus(); return false; }
-        const btn = $("#mFoot .primary"); const lbl = btn.textContent;
-        let imgVal = removeImg ? "" : (q.rastreioImg || ""), imgName = removeImg ? "" : (q.rastreioImgNome || "");
-        const oldId = q.rastreioImg && !q.rastreioImg.startsWith("data:") ? q.rastreioImg : null;
+        const keepImg = q.rastreioImg && !removeImg;
+        if (!url && !keepImg) { $("#m-url-err").textContent = "Informe um link de rastreio."; setErr(inp, true); inp.focus(); return false; }
         try {
-          if (pending) {
-            btn.textContent = "Enviando imagem…";
-            const small = await compressImage(pending, mode === "shared" ? 1920 : 1280, mode === "shared" ? 0.85 : 0.75);
-            if (mode === "shared") { const up = await cap.upload(small, { type: "image/jpeg" }); imgVal = up.id; }
-            else imgVal = await blobToDataURL(small);
-            imgName = pending.name;
-          }
-          await persist(q.id, { ...strip(q), _acao: "Rastreio atualizado", rastreio: url, rastreioImg: imgVal, rastreioImgNome: imgName, atualizadoEm: new Date().toISOString() });
-          if (cap && oldId && oldId !== imgVal) cap.delete(oldId).catch(() => {});
-          if (previewUrl) URL.revokeObjectURL(previewUrl);
+          await persist(q.id, { ...strip(q), _acao: "Rastreio atualizado", rastreio: url, rastreioImg: keepImg ? q.rastreioImg : "", rastreioImgNome: keepImg ? (q.rastreioImgNome || "") : "", atualizadoEm: new Date().toISOString() });
           toast("Rastreio salvo.");
-        } catch (e) {
-          btn.textContent = lbl;
-          const c = e && e.code, m = e && e.message;
-          const msg = m === "decode" ? "Não foi possível ler esta imagem. Use PNG, JPG ou WEBP." : c === "too_large" ? "Imagem grande demais." : c === "quota_exceeded" ? "O espaço para imagens desta página acabou. Remova imagens antigas." : c === "not_granted" ? "Sem permissão para enviar imagens nesta página." : c === "store_unavailable" ? "Serviço de imagens indisponível. Tente de novo." : (m === "encode" ? "Não foi possível processar a imagem." : null);
-          if (msg) { $("#m-img-err").textContent = msg; $("#m-img-err").style.display = "block"; }
-          else if (e && e.name === "QuotaExceededError") { $("#m-img-err").textContent = "Sem espaço no navegador para guardar a imagem."; $("#m-img-err").style.display = "block"; }
-          return false;
-        }
+        } catch { return false; }
       } }] });
-  if (!canImg) return;
-  const drop = $("#m-drop"), fileIn = $("#m-img");
-  const take = f => {
-    $("#m-img-err").style.display = "none";
-    if (!f) return;
-    if (!/^image\/(png|jpe?g|webp|gif)$/.test(f.type)) { $("#m-img-err").textContent = "Formato não suportado. Use PNG, JPG ou WEBP."; $("#m-img-err").style.display = "block"; return; }
-    if (f.size > 20 * 1024 * 1024) { $("#m-img-err").textContent = "A imagem passa de 20 MB."; $("#m-img-err").style.display = "block"; return; }
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    pending = f; removeImg = false; previewUrl = URL.createObjectURL(f); drop.innerHTML = dropHTML(); setErr($("#m-url"), false);
-  };
-  drop.onclick = e => {
-    if (e.target.closest("#m-img-rm")) { e.stopPropagation(); if (pending) { pending = null; if (previewUrl) URL.revokeObjectURL(previewUrl); previewUrl = null; } else removeImg = true; drop.innerHTML = dropHTML(); return; }
-    fileIn.click();
-  };
-  drop.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fileIn.click(); } };
-  fileIn.onchange = () => { take(fileIn.files[0]); fileIn.value = ""; };
-  drop.ondragover = e => { e.preventDefault(); drop.classList.add("over"); };
-  drop.ondragleave = () => drop.classList.remove("over");
-  drop.ondrop = e => { e.preventDefault(); drop.classList.remove("over"); take(e.dataTransfer.files[0]); };
-  const onPaste = e => { if (!$("#overlay").classList.contains("show") || !document.body.contains(drop)) { document.removeEventListener("paste", onPaste); return; } const it = [...(e.clipboardData?.items || [])].find(x => x.type.startsWith("image/")); if (it) { e.preventDefault(); const f = it.getAsFile(); take(new File([f], f.name && f.name !== "image.png" ? f.name : "print-rastreio.png", { type: f.type })); } };
-  document.addEventListener("paste", onPaste);
+  const rm = $("#m-old-rm"); if (rm) rm.onclick = () => { removeImg = true; rm.closest(".field").remove(); };
 }
 function askDeliver(q) {
   modal({ title: "Marcar como entregue", body: `<p style="margin:0">Pedido ${esc(q.pedido)} para ${esc(q.cidade)} / ${esc(q.uf)}. Previsão: ${fmtDate(prevista(q))}.</p><div class="field"><label for="m-date">Data da entrega ao cliente</label><input class="inp" id="m-date" type="date" value="${toISO(today())}" min="${esc(q.dataEmbarque || "")}"><span class="err">Informe uma data igual ou posterior à entrega na transportadora.</span></div>`,

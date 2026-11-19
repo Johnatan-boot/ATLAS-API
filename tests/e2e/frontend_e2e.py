@@ -7,6 +7,12 @@ B = os.environ.get("ATLAS_URL", "http://127.0.0.1:3333")
 ADM, ADM_PW = os.environ.get("ATLAS_ADMIN", "Antony.Goiana"), os.environ["ATLAS_ADMIN_SENHA"]
 SHOTS = os.environ.get("ATLAS_SHOTS")
 falhas = []
+def png_bytes(w=320, h=200):
+    """PNG colorido gerado sem dependências, para testar o anexo de imagem."""
+    import struct, zlib
+    raw = b"".join(b"\x00" + bytes(v for x in range(w) for v in (x * 255 // w, y * 255 // h, 160)) for y in range(h))
+    chunk = lambda k, d: struct.pack(">I", len(d)) + k + d + struct.pack(">I", zlib.crc32(k + d) & 0xFFFFFFFF)
+    return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0)) + chunk(b"IDAT", zlib.compress(raw)) + chunk(b"IEND", b"")
 def check(nome, ok, info=""):
     print(("OK   " if ok else "FALHA"), nome, info)
     if not ok: falhas.append(nome)
@@ -24,7 +30,7 @@ async def main():
     api("POST", "/usuarios", tok, {"email": "oper.e2e@kingstar.test", "usuario": "Oper.E2E", "senha": "Senha@123", "grupo": "operador"})
     api("POST", "/usuarios", tok, {"email": "visu.e2e@kingstar.test", "usuario": "Visu.E2E", "senha": "Senha@123", "grupo": "visualizador"})
     async with async_playwright() as p:
-        b = await p.chromium.launch(); pg = await (await b.new_context(viewport={"width": 1440, "height": 900})).new_page()
+        b = await p.chromium.launch(executable_path=os.environ.get("ATLAS_CHROMIUM") or None); pg = await (await b.new_context(viewport={"width": 1440, "height": 900})).new_page()
         errs = []; pg.on("pageerror", lambda e: errs.append(str(e)))
         shot = (lambda n: pg.screenshot(path=os.path.join(SHOTS, n))) if SHOTS else (lambda n: asyncio.sleep(0))
         await pg.goto(B + "/"); await pg.wait_for_timeout(800)
@@ -50,10 +56,35 @@ async def main():
         await pg.click("#list [data-a=deliver] >> nth=0"); await pg.wait_for_timeout(300); await pg.click("#mFoot .primary"); await pg.wait_for_timeout(1500)
         _, d = api("GET", "/cotacoes/" + c[0]["id"], tok)
         check("marcar como entregue grava no servidor", d["data"]["entregueEm"] and d["data"]["historico"][-1]["acao"] == "Marcada como entregue")
-        await pg.click("#list .row >> nth=0"); await pg.wait_for_timeout(300); await pg.click("#list .details [data-a=obs] >> nth=0"); await pg.wait_for_timeout(400)
+        await pg.click("#list [data-a=obs] >> nth=0"); await pg.wait_for_timeout(400)
         await pg.fill("#obsTxt", "Cliente pediu entrega pela manhã"); await pg.click("#obsAdd"); await pg.wait_for_timeout(1500)
         _, d = api("GET", "/cotacoes/" + c[0]["id"], tok)
         check("observação gravada com data do servidor", len(d["data"]["obs"]) == 1)
+        # Observação com imagem anexada (o anexo mora nas observações, não mais no modal de rastreio)
+        check("botão de anexar imagem existe ao lado de Incluir observação", await pg.locator("#obsUp").count() == 1 and await pg.locator("#obsAdd").count() == 1)
+        await pg.set_input_files("#obsFile", {"name": "print-rastreio.png", "mimeType": "image/png", "buffer": png_bytes()}); await pg.wait_for_timeout(300)
+        check("imagem escolhida aparece em pré-visualização", await pg.locator("#obsPic img").count() == 1 and "print-rastreio.png" in await pg.locator("#obsPic").inner_text())
+        await pg.fill("#obsTxt", "Print do rastreio da transportadora"); await pg.click("#obsAdd"); await pg.wait_for_selector("#obsList .obs-img", timeout=20000); await pg.wait_for_timeout(500)
+        _, d = api("GET", "/cotacoes/" + c[0]["id"], tok)
+        com_img = [o for o in d["data"]["obs"].values() if o.get("imagem")]
+        check("observação com imagem gravada na API (JPEG reduzido)", len(d["data"]["obs"]) == 2 and len(com_img) == 1 and com_img[0]["imagem"].startswith("data:image/jpeg;base64,") and com_img[0]["imagemNome"] == "print-rastreio.png")
+        check("histórico mostra o texto junto com a imagem", await pg.locator("#obsList .obs-item .obs-img").count() == 1 and "Print do rastreio" in await pg.locator("#obsList").inner_text())
+        check("pré-visualização some depois de incluir", await pg.locator("#obsPic").is_hidden())
+        await pg.click("#obsList .obs-imgbtn"); await pg.wait_for_timeout(300)
+        check("clicar na imagem do histórico abre a ampliação", await pg.locator(".lb img").count() == 1)
+        await pg.keyboard.press("Escape"); await pg.wait_for_timeout(300)
+        check("Esc fecha só a ampliação e mantém o modal de observações", await pg.locator(".lb").count() == 0 and await pg.locator("#obsList").count() == 1)
+        # regravar o registro (entrega reaberta) não perde a imagem da observação
+        await pg.keyboard.press("Escape"); await pg.wait_for_timeout(300)
+        await pg.click("#list [data-a=undo] >> nth=0"); await pg.wait_for_timeout(300); await pg.click("#mFoot .primary"); await pg.wait_for_timeout(1500)
+        _, d = api("GET", "/cotacoes/" + c[0]["id"], tok)
+        check("imagem da observação sobrevive à edição do registro", sum(1 for o in d["data"]["obs"].values() if o.get("imagem")) == 1 and not d["data"]["entregueEm"])
+        await pg.click("#list [data-a=deliver] >> nth=0"); await pg.wait_for_timeout(300); await pg.click("#mFoot .primary"); await pg.wait_for_timeout(1200)
+        # modal de rastreio só tem o link
+        await pg.click("#list [data-a=track] >> nth=0"); await pg.wait_for_timeout(300)
+        check("modal de incluir rastreio não tem mais o upload de imagem", await pg.locator("#m-url").count() == 1 and await pg.locator("#m-drop, #m-img").count() == 0)
+        await pg.keyboard.press("Escape"); await pg.wait_for_timeout(300)
+        await pg.click("#list [data-a=obs] >> nth=0"); await pg.wait_for_timeout(400)
         await pg.keyboard.press("Escape"); await pg.wait_for_timeout(300); await shot("02_acompanhar.png")
         # Produto e usuário pela interface
         await pg.click(".nav [data-view=produtos]"); await pg.wait_for_timeout(600)

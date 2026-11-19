@@ -72,6 +72,35 @@ test("observações: data/autor definidos pelo servidor; exclusão só para admi
   const del = await t.app.inject({ method: "PATCH", url: `/api/v1/cotacoes/${c.id}`, headers: auth(tk.admin), payload: { obs: { o1: null } } });
   assert.equal(del.statusCode, 200); assert.deepEqual(del.json().data.obs, {});
 });
+const PNG_1X1 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg==";
+test("observação aceita imagem anexada; ela é validada, preservada e não é reenviada pelo cliente", async () => {
+  const c = (await post("/api/v1/cotacoes", tk.oper, cotacaoPayload({ pedido: "PV-IMG" }))).json().data;
+  const url = `/api/v1/cotacoes/${c.id}`;
+  const patch = (token: string, payload: object) => t.app.inject({ method: "PATCH", url, headers: auth(token), payload });
+  // inclui com imagem
+  const ok = await patch(tk.oper, { obs: { i1: { texto: "Print do rastreio", imagem: PNG_1X1, imagemNome: "print.png" } } });
+  assert.equal(ok.statusCode, 200, ok.body);
+  assert.equal(ok.json().data.obs.i1.imagem, PNG_1X1); assert.equal(ok.json().data.obs.i1.imagemNome, "print.png");
+  assert.equal(ok.json().data.historico.at(-1).acao, "Observação incluída");
+  // a imagem volta na consulta
+  assert.equal((await t.app.inject({ url, headers: auth(tk.visu) })).json().data.obs.i1.imagem, PNG_1X1);
+  // observação sem imagem continua válida
+  assert.equal((await patch(tk.oper, { obs: { i2: { texto: "Sem anexo" } } })).statusCode, 200);
+  // imagem inválida (não é data URL de imagem) e grande demais são recusadas
+  assert.equal((await patch(tk.oper, { obs: { i3: { texto: "x", imagem: "javascript:alert(1)" } } })).statusCode, 400);
+  assert.equal((await patch(tk.oper, { obs: { i3: { texto: "x", imagem: "data:text/html;base64,PGI+" } } })).statusCode, 400);
+  assert.equal((await patch(tk.oper, { obs: { i3: { texto: "x", imagem: "data:image/png;base64," + "A".repeat(1_500_000) } } })).statusCode, 400);
+  // regravar o registro (PUT) sem a imagem da observação existente não a apaga, e não dá para trocar a imagem de uma observação existente
+  const put = await t.app.inject({ method: "PUT", url, headers: auth(tk.oper), payload: cotacaoPayload({ pedido: "PV-IMG", obs: { i1: { texto: "Print do rastreio" }, i2: { texto: "Sem anexo" } } }) });
+  assert.equal(put.statusCode, 200, put.body); assert.equal(put.json().data.obs.i1.imagem, PNG_1X1);
+  const troca = await patch(tk.oper, { obs: { i2: { texto: "Sem anexo", imagem: PNG_1X1 } } });
+  assert.equal(troca.statusCode, 200); assert.equal(troca.json().data.obs.i2.imagem, undefined, "observação existente é imutável");
+  // visualizador não anexa
+  assert.equal((await patch(tk.visu, { obs: { i4: { texto: "x", imagem: PNG_1X1 } } })).statusCode, 403);
+  // excluir a observação (admin) remove a imagem junto
+  const del = await patch(tk.admin, { obs: { i1: null } });
+  assert.equal(del.statusCode, 200); assert.equal(del.json().data.obs.i1, undefined);
+});
 test("filtros por status e paginação", async () => {
   await post("/api/v1/cotacoes", tk.oper, cotacaoPayload({ pedido: "PV-ATR", dataEmbarque: isoOffset(-40) }));
   const atr = await t.app.inject({ url: "/api/v1/cotacoes?status=atrasada", headers: auth(tk.oper) });

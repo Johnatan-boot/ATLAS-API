@@ -3,7 +3,7 @@ import type { HistItem } from "../shared/audit.js";
 /** Contrato idêntico ao frontend ATLAS (Cotações de Frete e Coletas usam a mesma estrutura). */
 export interface ProdutoItem { sku: string; nome: string; qtd: number; valorUnit: number; valorCatalogo: number | null; subtotal: number; pesoUnit: number | null; pesoTotal: number | null }
 export interface OpcaoFrete { numero: string; transportadora: string; valorFrete: number; prazoDias: number }
-export interface Observacao { texto: string; em: string; autorId: string | null }
+export interface Observacao { texto: string; em: string; autorId: string | null; imagem?: string; imagemNome?: string }
 export interface CotacaoDoc {
   id: string;
   cliente: string; pedido: string; numeroNF: string; filial: string;

@@ -32,6 +32,8 @@
 
 Excluir observações (PATCH com `null` ou PUT sem a chave) também exige administrador.
 
+**Imagem em observação.** Cada observação de cotações e coletas aceita `imagem` (data URL `data:image/png|jpeg|webp|gif;base64,...`, até 1,4 milhão de caracteres) e `imagemNome` (até 200). A imagem é validada, gravada no próprio registro e imutável junto com o texto: ao regravar o registro (PUT) a observação existente mantém a imagem original mesmo que o cliente não a reenvie. Cada registro aceita até 20 imagens (422 acima disso). Excluir a observação (administrador) remove a imagem junto.
+
 ## Autenticação — `/auth`
 
 | Método e rota | Descrição |

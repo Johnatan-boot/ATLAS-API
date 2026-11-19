@@ -7,6 +7,10 @@ export const IsoDate = z.string().refine(isValidISODate, "Data inválida (use AA
 const Url = z.string().trim().max(500).refine(v => v === "" || /^https?:\/\/[^\s]+\.[^\s]+/i.test(v), "Link de rastreio inválido.");
 const ImgData = z.string().max(2_800_000, "Imagem muito grande.").refine(v => v === "" || /^data:image\/(png|jpe?g|webp|gif);base64,[A-Za-z0-9+/=]+$/.test(v), "Imagem inválida.");
 const ObsKey = z.string().regex(/^[A-Za-z0-9_-]{1,40}$/);
+/** Imagem anexada a uma observação (data URL já reduzida pelo frontend). */
+export const MAX_IMG_OBS = 1_400_000;
+export const MAX_IMGS_POR_REGISTRO = 20;
+const ObsImg = z.string().max(MAX_IMG_OBS, "Imagem da observação muito grande.").refine(v => v === "" || /^data:image\/(png|jpe?g|webp|gif);base64,[A-Za-z0-9+/=]+$/.test(v), "Imagem inválida.");
 
 export const ProdutoItemSchema = z.object({
   sku: z.string().trim().min(1).max(60),
@@ -21,7 +25,7 @@ export const OpcaoSchema = z.object({
   valorFrete: z.number().finite().min(0).max(1e9),
   prazoDias: z.number().int().min(1).max(365),
 });
-export const ObsSchema = z.object({ texto: z.string().trim().min(1).max(1000), em: z.string().max(40).optional(), autorId: z.string().max(40).nullable().optional() });
+export const ObsSchema = z.object({ texto: z.string().trim().min(1).max(1000), em: z.string().max(40).optional(), autorId: z.string().max(40).nullable().optional(), imagem: ObsImg.optional(), imagemNome: z.string().trim().max(200).optional() });
 
 /** Campos editáveis. Campos calculados/protegidos enviados pelo cliente (valorPedido, dataPrevista, historico, criadoPor...) são ignorados e recalculados no servidor. */
 const Fields = {

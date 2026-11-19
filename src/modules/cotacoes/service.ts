@@ -8,7 +8,7 @@ import type { FiliaisService } from "../filiais/service.js";
 import type { ProdutosRepository } from "../produtos/repository.js";
 import type { CotacaoDoc, Observacao, OpcaoFrete, ProdutoItem, StatusFiltro } from "./model.js";
 import type { PedidosRepository } from "./repository.js";
-import { CotacaoBody, type CotacaoInput, type CotacaoPatchInput } from "./schema.js";
+import { CotacaoBody, MAX_IMGS_POR_REGISTRO, type CotacaoInput, type CotacaoPatchInput } from "./schema.js";
 
 /** Melhor opção da Calculadora de frete: menor valor; empate (≤ R$ 0,004) pelo menor prazo — mesma regra do frontend. */
 export function melhorOpcao(ops: OpcaoFrete[]): number {
@@ -76,8 +76,9 @@ export class PedidosService {
     const incoming = input.obs ?? prevObs;
     for (const [k, v] of Object.entries(incoming)) {
       if (!v) continue;
-      obs[k] = prevObs[k] ?? { texto: v.texto, em: nowISO(), autorId: user.id };
+      obs[k] = prevObs[k] ?? { texto: v.texto, em: nowISO(), autorId: user.id, ...(v.imagem ? { imagem: v.imagem, imagemNome: v.imagemNome ?? "" } : {}) };
     }
+    if (Object.values(obs).filter(o => o.imagem).length > MAX_IMGS_POR_REGISTRO) throw unprocessable(`Limite de ${MAX_IMGS_POR_REGISTRO} imagens por registro atingido.`);
     const removed = Object.keys(prevObs).filter(k => !obs[k]);
     if (removed.length && user.grupo !== "admin") throw forbidden("Seu grupo não tem permissão para excluir observações.");
 
@@ -125,7 +126,7 @@ export class PedidosService {
     await this.db.transaction(async tx => {
       const prev = await this.repo.find(id, tx); if (!prev) throw notFound(`${this.rotulo} não encontrada.`);
       const obs: Record<string, Observacao | null> = { ...prev.obs };
-      if (patch.obs) for (const [k, v] of Object.entries(patch.obs)) { if (v === null) delete obs[k]; else obs[k] = obs[k] ?? { texto: v.texto, em: "", autorId: null }; }
+      if (patch.obs) for (const [k, v] of Object.entries(patch.obs)) { if (v === null) delete obs[k]; else obs[k] = obs[k] ?? { texto: v.texto, em: "", autorId: null, ...(v.imagem ? { imagem: v.imagem, imagemNome: v.imagemNome ?? "" } : {}) }; }
       const merged = CotacaoBody.parse({
         cliente: prev.cliente, pedido: prev.pedido, numeroNF: prev.numeroNF ?? "", filial: prev.filial, produtos: prev.produtos, transportadora: prev.transportadora, valorFrete: prev.valorFrete,
         prazoDias: prev.prazoDias, numeroCotacao: prev.numeroCotacao, opcoes: prev.opcoes, opcaoSel: prev.opcoes?.length ? prev.opcaoSel : undefined, cep: prev.cep,

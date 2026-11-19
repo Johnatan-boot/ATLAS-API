@@ -109,13 +109,17 @@
     throw new Error("Documento não suportado: " + path);
   }
 
+  /* Observações já gravadas são imutáveis no servidor: ao regravar o registro inteiro (PUT) não reenviamos as imagens delas,
+     o que evita estourar o limite de corpo da requisição. O servidor mantém a imagem original de cada observação. */
+  const semImagensObs = obs => Object.fromEntries(Object.entries(obs).map(([k, v]) => { if (!v || v.imagem === undefined) return [k, v]; const { imagem, imagemNome, ...resto } = v; return [k, resto]; }));
+
   /* Escritas por caminho. */
   async function write(op, path, data) {
     const m = path.match(/^(cotacoes|coletas|envios)\/([^/]+)$/);
     if (m) {
       const url = `/${m[1]}/${m[2]}`;
       if (op === "delete") await API.req("DELETE", url);
-      else { const body = { ...data }; const a = lastAcao(data); if (a && !body.acao && op === "set") body.acao = a; delete body.historico; await API.req(op === "set" ? "PUT" : "PATCH", url, body); }
+      else { const body = { ...data }; if (op === "set" && body.obs) body.obs = semImagensObs(body.obs); const a = lastAcao(data); if (a && !body.acao && op === "set") body.acao = a; delete body.historico; await API.req(op === "set" ? "PUT" : "PATCH", url, body); }
       return DB.touch(m[1]);
     }
     if (/^catalogo\/s\d\d$/.test(path)) {
